@@ -26,20 +26,38 @@ class DateSerializer:
         self.raw_s = (datetime.now().second)
 
     def getYear(self):
+        self.refresh()
         return str(self.raw_y)
 
     def getMonth(self):
+        self.refresh()
         return months[self.raw_m]
 
     def getDay(self):
+        self.refresh()
         return str(self.raw_d)
 
     def getHour(self):
+        self.refresh()
         return str(self.raw_h)
 
     def getMin(self):
+        self.refresh()
         if self.raw_mn < 10:
             buffer = '0' + str(self.raw_mn)
             return buffer
         else:
             return str(self.raw_mn)
+
+    def getSec(self):
+        self.refresh()
+        if self.raw_s < 10:
+            buffer = '0' + str(self.raw_s)
+            return buffer
+        else:
+            return str(self.raw_s)
+
+    def getComplete(self):
+        self.refresh()
+        string = self.getHour() + ':' + self.getMin() + ':' + self.getSec()
+        return string

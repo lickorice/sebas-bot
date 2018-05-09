@@ -26,8 +26,8 @@ print('[ LOG ] : Importing logger...')
 
 
 class Logger():
-    def action(self, text):
-        print('[ ACT ] : ' + text)
+    def action(self, text, time):
+        print('[ ACT ] ({}) : {}'.format(time, text))
 
-    def log(self, text):
-        print('[ LOG ] : ' + text)
+    def log(self, text, time):
+        print('[ LOG ] ({}) : {}'.format(time, text))
