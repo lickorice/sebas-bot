@@ -28,6 +28,9 @@ import discord
 from discord.ext import commands
 import asyncio
 from dateserializer import DateSerializer
+from logger import Logger
+from emoji import EmojiHandler
+
 
 bot = commands.Bot(command_prefix='..')
 dt = DateSerializer()
@@ -39,6 +42,9 @@ strikes = {'id': 0}
 userIDs = {'owner': '319285994253975553'}
 imgs = {'avatar': 'https://avatars0.githubusercontent.com/u/14945942?s=400&u=\
 563ecf361e3cc4d40074868152d10951ca5e85b2&v=4'}
+
+log = Logger()
+emoji = EmojiHandler()
 
 
 # mention function
@@ -78,28 +84,50 @@ async def info(ctx):
     e.add_field(name='Version', value=version, inline=False)
     e.add_field(name='Number of commands since startup:', value=str(cmdNum),
                 inline=True)
-    e.set_footer(text="developed by lickorice, May 2018", icon_url=imgs['avatar'])
+    e.set_footer(text="developed by lickorice, May 2018",
+                 icon_url=imgs['avatar'])
     await bot.send_message(ctx.message.channel, embed=e)
 
 
 @bot.command(pass_context=True)
 async def add(ctx, a, b):
+    log.action('Adding numbers...')
     await bot.send_message(ctx.message.channel, str(int(a)+int(b)))
 
 
 @bot.command(pass_context=True)
 async def multiply(ctx, a, b):
+    log.action('Multiplying numbers...')
     await bot.send_message(ctx.message.channel, str(int(a)*int(b)))
 
 
 @bot.command(pass_context=True)
 async def divide(ctx, a, b):
+    log.action('Dividing numbers...')
     await bot.send_message(ctx.message.channel, str(int(a)/int(b)))
 
 
 @bot.command(pass_context=True)
 async def subtract(ctx, a, b):
+    log.action('Subtracting numbers...')
     await bot.send_message(ctx.message.channel, str(int(a)-int(b)))
+
+
+def isRepeating(string):
+    for n in range(len(string) - 1):
+        if n != 0:
+            if string[n] == string[n-1]:
+                return True
+
+
+@bot.command(pass_context=True)
+async def react(ctx, para=None, charstr=None, msgID=None):
+    if para == 'str':
+        msgchannel = ctx.message.channel
+        target_msg = await bot.get_message(channel=msgchannel, id=msgID)
+        await bot.delete_message(ctx.message)
+        for char in charstr.lower():
+            await bot.add_reaction(message=target_msg, emoji=emoji.chrs[char])
 
 
 @bot.event
