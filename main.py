@@ -55,6 +55,10 @@ night_greetings = ['good night', 'gn']
 bye_greetings = ['i gtg']
 hello_greetings = ['hello', 'hi', 'herro']
 
+# declares a dictionary of the last, and second to the last messages
+last_msg = {'channel': 'id'}
+next_msg = {'channel': 'id'}
+
 
 # mention function
 def mtn(id_string):
@@ -134,25 +138,67 @@ async def subtract(ctx, a, b):
 # block react command
 @bot.command(pass_context=True)
 async def react(ctx, para=None, charstr=None, msgID=None):
-    if para == 'str':
-        msgchannel = ctx.message.channel
-        target_msg = await bot.get_message(channel=msgchannel, id=msgID)
-        await bot.delete_message(ctx.message)
-        for char in charstr.lower():
-            await bot.add_reaction(message=target_msg, emoji=emoji.chrs[char])
+    if msgID is None:
+        msgID = next_msg[ctx.message.channel.id]
 
-    if para == 'set':
-        msgchannel = ctx.message.channel
-        target_msg = await bot.get_message(channel=msgchannel, id=msgID)
-        await bot.delete_message(ctx.message)
-        if charstr in emoji.sets:
-            for reaction in emoji.sets[charstr]:
-                await bot.add_reaction(message=target_msg, emoji=reaction)
+    log.action('Handling `..react`...', dt.getComplete())
+    if para == 'str':
+        if charstr:
+            msgchannel = ctx.message.channel
+            target_msg = await bot.get_message(channel=msgchannel, id=msgID)
+            await bot.delete_message(ctx.message)
+            last_msg[ctx.message.channel.id] = next_msg[ctx.message.channel.id]
+            for char in charstr.lower():
+                log.action('Reacting to ' + msgID, dt.getComplete)
+                await bot.add_reaction(message=target_msg,
+                                       emoji=emoji.chrs[char])
+        else:
+            await bot.send_message(ctx.message.channel,
+                                   'Please specify a **message!** Do ..rhelp\
+for more information.')
+    elif para == 'set':
+        if charstr:
+            msgchannel = ctx.message.channel
+            target_msg = await bot.get_message(channel=msgchannel, id=msgID)
+            await bot.delete_message(ctx.message)
+            if charstr in emoji.sets:
+                for reaction in emoji.sets[charstr]:
+                    await bot.add_reaction(message=target_msg, emoji=reaction)
+            else:
+                await bot.send_message(ctx.message.channel,
+                                       'That set does not exist! Do ..rhelp\
+for more information.')
+        else:
+            await bot.send_message(ctx.message.channel,
+                                   'Please specify a **set!**')
+    else:
+        await bot.send_message(ctx.message.channel,
+                               "Please specify a **parameter!** (str, set)")
+
+
+# sethelp, shows available sets
+@bot.command(pass_context=True)
+async def rhelp(ctx):
+    await bot.send_message(ctx.message.channel,
+                           '**How** `..react` **works:** \n \
+`..react (str/set) (message/set)`\n `str` makes ' + bot.user.name + ' react \
+with the following `message`. **Repeated letters do not count.** \n \
+`set` makes ' + bot.user.name + ' react with a following premade set.\
+Sets include:\n`hearts` - emojis of hearts')
 
 
 # handles on message stuff
 @bot.event
 async def on_message(message):
+
+    # this registers last and second to the last messages, on each channel.
+    global last_msg
+    global next_msg
+    if message.channel.id in last_msg:
+        if message.id != last_msg[message.channel.id]:
+            next_msg[message.channel.id] = last_msg[message.channel.id]
+    last_msg[message.channel.id] = message.id
+
     authorID = message.author.id
 
     # handles advertising discord links
@@ -173,43 +219,43 @@ async def on_message(message):
 
     # handles greetings
     for greet in morning_greetings:
-        if greet in message.content.lower() and authorID != botID:
+        if greet is message.content.lower() and authorID != botID:
             greeting = 'Good morning, young master ' + mtn(authorID)
             await bot.send_message(message.channel, greeting)
             break
 
     for greet in day_greetings:
-        if greet in message.content.lower() and authorID != botID:
+        if greet is message.content.lower() and authorID != botID:
             greeting = 'Good day, young master ' + mtn(authorID)
             await bot.send_message(message.channel, greeting)
             break
 
     for greet in evening_greetings:
-        if greet in message.content.lower() and authorID != botID:
+        if greet is message.content.lower() and authorID != botID:
             greeting = 'Good evening, young master ' + mtn(authorID)
             await bot.send_message(message.channel, greeting)
             break
 
     for greet in afternoon_greetings:
-        if greet in message.content.lower() and authorID != botID:
+        if greet is message.content.lower() and authorID != botID:
             greeting = 'Good afternoon, young master ' + mtn(authorID)
             await bot.send_message(message.channel, greeting)
             break
 
     for greet in night_greetings:
-        if greet in message.content.lower() and authorID != botID:
+        if greet is message.content.lower() and authorID != botID:
             greeting = 'Good night, young master ' + mtn(authorID)
             await bot.send_message(message.channel, greeting)
             break
 
     for greet in hello_greetings:
-        if greet in message.content.lower() and authorID != botID:
+        if greet is message.content.lower() and authorID != botID:
             greeting = 'Greetings, young master ' + mtn(authorID)
             await bot.send_message(message.channel, greeting)
             break
 
     for greet in bye_greetings:
-        if greet in message.content.lower() and authorID != botID:
+        if greet is message.content.lower() and authorID != botID:
             greeting = 'Godspeed, young master ' + mtn(authorID)
             await bot.send_message(message.channel, greeting)
             break
