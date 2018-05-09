@@ -37,7 +37,7 @@ botID = '442722388757446671'
 dt = DateSerializer()
 cmdNum = 0  # total number of commands in instance
 
-version = '0.1 alpha'
+version = '0.2 alpha'
 
 strikes = {'id': 0}
 userIDs = {'owner': '319285994253975553'}
@@ -140,6 +140,14 @@ async def react(ctx, para=None, charstr=None, msgID=None):
         await bot.delete_message(ctx.message)
         for char in charstr.lower():
             await bot.add_reaction(message=target_msg, emoji=emoji.chrs[char])
+
+    if para == 'set':
+        msgchannel = ctx.message.channel
+        target_msg = await bot.get_message(channel=msgchannel, id=msgID)
+        await bot.delete_message(ctx.message)
+        if charstr in emoji.sets:
+            for reaction in emoji.sets[charstr]:
+                await bot.add_reaction(message=target_msg, emoji=reaction)
 
 
 # handles on message stuff
