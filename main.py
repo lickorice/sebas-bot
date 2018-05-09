@@ -33,6 +33,7 @@ from emoji import EmojiHandler
 
 
 bot = commands.Bot(command_prefix='..')
+botID = '442722388757446671'
 dt = DateSerializer()
 cmdNum = 0  # total number of commands in instance
 
@@ -46,12 +47,21 @@ imgs = {'avatar': 'https://avatars0.githubusercontent.com/u/14945942?s=400&u=\
 log = Logger()
 emoji = EmojiHandler()
 
+morning_greetings = ['good morning', 'ohayou', 'ohaiyou', 'ohayo', 'gm']
+afternoon_greetings = ['good afternoon', 'good pm']
+evening_greetings = ['good evening', 'evening']
+day_greetings = ['good day']
+night_greetings = ['good night', 'gn']
+bye_greetings = ['i gtg']
+hello_greetings = ['hello', 'hi', 'herro']
+
 
 # mention function
 def mtn(id_string):
     return '<@{}>'.format(id_string)
 
 
+# function to count commands since started
 def cmdCount():
     global cmdNum
     cmdNum += 1
@@ -71,13 +81,21 @@ async def on_ready():
     print('█████████████████████████████████████████████████████')
     print('Today is {} {}, {}'.format(dt.getMonth(),
           dt.getDay(), dt.getYear()))
-    print(bot.user.name, 'has been started at {}:{}'.format(dt.getHour(),
-          dt.getMin()))
+    print(bot.user.name, 'has been started at ' + dt.getComplete())
+
+
+# kill command
+@bot.command(pass_context=True)
+async def leave(ctx):
+    await bot.send_message(ctx.message.channel, 'I shall take my leave. \
+Thank you.')
+    await bot.close()
 
 
 @bot.command(pass_context=True)
 async def info(ctx):
     # Prints developer info
+    log.action('Info method called.', dt.getComplete())
     cmdCount()
     e = discord.Embed()
     e.add_field(name='Developer', value=mtn(userIDs['owner']), inline=False)
@@ -91,35 +109,29 @@ async def info(ctx):
 
 @bot.command(pass_context=True)
 async def add(ctx, a, b):
-    log.action('Adding numbers...')
+    log.action('Adding numbers...', dt.getComplete())
     await bot.send_message(ctx.message.channel, str(int(a)+int(b)))
 
 
 @bot.command(pass_context=True)
 async def multiply(ctx, a, b):
-    log.action('Multiplying numbers...')
+    log.action('Multiplying numbers...', dt.getComplete())
     await bot.send_message(ctx.message.channel, str(int(a)*int(b)))
 
 
 @bot.command(pass_context=True)
 async def divide(ctx, a, b):
-    log.action('Dividing numbers...')
+    log.action('Dividing numbers...', dt.getComplete())
     await bot.send_message(ctx.message.channel, str(int(a)/int(b)))
 
 
 @bot.command(pass_context=True)
 async def subtract(ctx, a, b):
-    log.action('Subtracting numbers...')
+    log.action('Subtracting numbers...', dt.getComplete())
     await bot.send_message(ctx.message.channel, str(int(a)-int(b)))
 
 
-def isRepeating(string):
-    for n in range(len(string) - 1):
-        if n != 0:
-            if string[n] == string[n-1]:
-                return True
-
-
+# block react command
 @bot.command(pass_context=True)
 async def react(ctx, para=None, charstr=None, msgID=None):
     if para == 'str':
@@ -130,9 +142,11 @@ async def react(ctx, para=None, charstr=None, msgID=None):
             await bot.add_reaction(message=target_msg, emoji=emoji.chrs[char])
 
 
+# handles on message stuff
 @bot.event
 async def on_message(message):
     authorID = message.author.id
+
     # handles advertising discord links
     if 'discord.gg' in message.content:
         if authorID in strikes:
@@ -148,6 +162,49 @@ async def on_message(message):
                                    u"\u26A0" + mtn(authorID) + ", Advertising in\
  public channels is **a bannable offense!** \n ***This will be\
  your last warning!***")
+
+    # handles greetings
+    for greet in morning_greetings:
+        if greet in message.content.lower() and authorID != botID:
+            greeting = 'Good morning, young master ' + mtn(authorID)
+            await bot.send_message(message.channel, greeting)
+            break
+
+    for greet in day_greetings:
+        if greet in message.content.lower() and authorID != botID:
+            greeting = 'Good day, young master ' + mtn(authorID)
+            await bot.send_message(message.channel, greeting)
+            break
+
+    for greet in evening_greetings:
+        if greet in message.content.lower() and authorID != botID:
+            greeting = 'Good evening, young master ' + mtn(authorID)
+            await bot.send_message(message.channel, greeting)
+            break
+
+    for greet in afternoon_greetings:
+        if greet in message.content.lower() and authorID != botID:
+            greeting = 'Good afternoon, young master ' + mtn(authorID)
+            await bot.send_message(message.channel, greeting)
+            break
+
+    for greet in night_greetings:
+        if greet in message.content.lower() and authorID != botID:
+            greeting = 'Good night, young master ' + mtn(authorID)
+            await bot.send_message(message.channel, greeting)
+            break
+
+    for greet in hello_greetings:
+        if greet in message.content.lower() and authorID != botID:
+            greeting = 'Greetings, young master ' + mtn(authorID)
+            await bot.send_message(message.channel, greeting)
+            break
+
+    for greet in bye_greetings:
+        if greet in message.content.lower() and authorID != botID:
+            greeting = 'Godspeed, young master ' + mtn(authorID)
+            await bot.send_message(message.channel, greeting)
+            break
 
     await bot.process_commands(message)
 
