@@ -28,6 +28,19 @@ print('[ LOG ] : Importing emoji handler...')
 
 class EmojiHandler():
     def __init__(self):
+        self.hearts = [u"\U0001F493",
+                       u"\U0001F495",
+                       u"\U0001F496",
+                       u"\U0001F497",
+                       u"\U0001F498",
+                       u"\U0001F499",
+                       u"\U0001F49A",
+                       u"\U0001F49B",
+                       u"\U0001F49C",
+                       u"\U0001F49D",
+                       u"\U0001F49E",
+                       u"\U0001F49F",
+                       u"\U00002665"]
         self.chrs = {'a': u"\U0001F1E6",
                      'b': u"\U0001F1E7",
                      'c': u"\U0001F1E8",
@@ -54,3 +67,5 @@ class EmojiHandler():
                      'x': u"\U0001F1FD",
                      'y': u"\U0001F1FE",
                      'z': u"\U0001F1FF"}
+
+        self.sets = {'hearts': self.hearts}
