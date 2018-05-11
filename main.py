@@ -26,6 +26,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import discord
 from discord.ext import commands
+from discord.utils import get
 import asyncio
 from dateserializer import DateSerializer
 from logger import Logger
@@ -60,6 +61,9 @@ last_msg = {'channel': 'id'}
 next_msg = {'channel': 'id'}
 privChan = {'user_id': 'channel_id'}
 
+pending_r = {'user_id': 'server_id'}
+mbr_role = {}
+
 
 # mention function
 def mtn(id_string):
@@ -87,6 +91,11 @@ async def on_ready():
     print('Today is {} {}, {}'.format(dt.getMonth(),
           dt.getDay(), dt.getYear()))
     print(bot.user.name, 'has been started at ' + dt.getComplete())
+
+    for svr in bot.servers:
+        log.log("Initialzing " + svr.name + "...", dt.getComplete())
+        global mbr_role  # declares 'default member role list'
+        mbr_role[svr.id] = get(svr.roles, name="Member")
 
 
 # kill command
@@ -188,6 +197,43 @@ with the following `message`. **Repeated letters do not count.** \n \
 Sets include:\n`hearts` - emojis of hearts')
 
 
+# BEYOND THIS POINT:
+# Admin commands
+# sethelp, shows available sets
+@bot.command(pass_context=True)
+async def verifyall(ctx):
+    if ctx.message.author.id == userIDs['owner']:
+        for mbr in ctx.message.channel.server.members:
+            log.log('Verifying user: ' + mbr.name, dt.getComplete())
+            askforVerif_str = (mtn(mbr.id)+"\n**Hello!** I am **" +
+                               bot.user.name+"**, **"+mbr.server.name +
+                               "'s** homemade security and moderat\
+ion bot, developed by none other than "+mtn(userIDs['owner'])+" himself! \n\n\
+I am required to ask if you have **read the server #rules** in " +
+                               "**"+mbr.server.name+"**.\n\n"
+                               + "Please reply with `yes` if you have, and you\
+ will be *given permissions*  to access the server's public channels.\n\n\
+ Thank you.")
+
+            await bot.send_message(mbr, askforVerif_str)
+
+            for ch in bot.private_channels:
+                log.log('Retrieving channel...', dt.getComplete())
+                log.log('Channel recipients: '+str(len(ch.recipients)),
+                        dt.getComplete())
+                if mbr in ch.recipients and len(ch.recipients) == 1:
+                    log.log(mbr.name+' successfully registered a PM Channel.',
+                            dt.getComplete())
+                    privChan[mbr.id] = ch.id
+                    pending_r[mbr.id] = mbr.server.id
+                    break
+
+
+# handles on bot server joins
+async def on_server_join(server):
+    pass
+
+
 # handles on member join stuff
 @bot.event
 async def on_member_join(member):
@@ -199,6 +245,7 @@ I am required to ask if you have **read the server #rules** in " +
                        "**"+member.server.name+"**.\n\n"
                        + "Please reply with `yes` if you have, and you will \
 be *given permissions*  to access the server's public channels. Thank you.")
+
     await bot.send_message(member, askforVerif_str)
 
     for ch in bot.private_channels:
@@ -209,6 +256,7 @@ be *given permissions*  to access the server's public channels. Thank you.")
             log.log('New member successfully registered PM Channel.',
                     dt.getComplete())
             privChan[member.id] = ch.id
+            pending_r[member.id] = member.server.id
             break
 
 
@@ -221,8 +269,18 @@ async def on_message(message):
     # handles verification in private messages
     # passed by on_member_join()
     if message.content == 'yes' and message.channel.id == privChan[authorID]:
+        role = mbr_role[pending_r[authorID]]
         await bot.send_message(bot.get_channel(privChan[authorID]),
-                               'received')
+                               '**Your response has been noted!** \n' +
+                               'Please enjoy your stay in the server!' +
+                               '\n\n *You have been assigned the* ***' +
+                               role.name + '*** *role*')
+        log.log('User: ' + message.author.name + ' has been verified.',
+                dt.getComplete())
+        await bot.add_roles(get(bot.get_server(pending_r[authorID]).members,
+                            id=authorID), mbr_role[pending_r[authorID]])
+        log.log(role.name + ' has been assigned to ' + message.author.name,
+                dt.getComplete())
 
     # this registers last and second to the last messages, on each channel.
     global last_msg
