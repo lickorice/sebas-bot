@@ -222,6 +222,10 @@ async def verifyall(ctx):
             except discord.errors.Forbidden:
                 continue
 
+    else:
+        bot.send_message(ctx.message.channel,
+                         "You aren't **authorized** to use that command.")
+
 
 # handles on member join stuff
 @bot.event
