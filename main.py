@@ -40,7 +40,7 @@ botID = '442722388757446671'
 dt = DateSerializer()
 cmdNum = 0  # total number of commands in instance
 
-version = '0.3 alpha'
+version = '0.4 beta'
 
 strikes = {'id': 0}
 userIDs = {'owner': '319285994253975553', 'self': '444153336267145216'}
