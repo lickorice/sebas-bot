@@ -47,20 +47,18 @@ class DBHelper():
         c.execute('''SELECT privatechannelID FROM dm_list WHERE userID =?''',
                   (userID,))
         channelID = c.fetchone()
-        return channelID
+        return channelID[0]
 
     def fetchPendingServerID(self, userID):
         # returns a server ID when given a user ID where the user is pending.
         c = db.cursor()
-        c.execute('''SELECT serverID FROM pending_list WHERE userID =?
-                    AND pending == TRUE''',
+        c.execute('''SELECT serverID FROM pending_list WHERE userID = ?''',
                   (userID,))
         serverID = c.fetchone()
-        return serverID
+        return serverID[0]
 
-    def updatePending(self, userID, serverID, pending):
+    def dropPending(self, userID):
         c = db.cursor()
-        c.execute('''UPDATE pending_list SET pending = FALSE,
-                WHERE userID = ? AND serverID = ?''',
-                  (userID, serverID,))
+        c.execute('''DELETE FROM pending_list WHERE userID = ?''',
+                  (userID,))
         db.commit()

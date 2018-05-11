@@ -25,6 +25,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 import discord
+import sqlite3
 import dbhelper
 from discord.ext import commands
 from discord.utils import get
@@ -42,7 +43,7 @@ cmdNum = 0  # total number of commands in instance
 version = '0.3 alpha'
 
 strikes = {'id': 0}
-userIDs = {'owner': '319285994253975553'}
+userIDs = {'owner': '319285994253975553', 'self': '444153336267145216'}
 imgs = {'avatar': 'https://avatars0.githubusercontent.com/u/14945942?s=400&u=\
 563ecf361e3cc4d40074868152d10951ca5e85b2&v=4'}
 
@@ -54,7 +55,8 @@ dbh = dbhelper.DBHelper()
 txt_f = {'splash': 'txt/splash.txt',
          'help': 'txt/help.txt',
          'verify': 'txt/verify.txt',
-         'rhelp': 'txt/rhelp.txt'}
+         'rhelp': 'txt/rhelp.txt',
+         'vrfres': 'txt/verify_response.txt'}
 
 # declares a dictionary of the last, and second to the last messages
 last_msg = {'channel': 'id'}
@@ -210,9 +212,15 @@ async def rhelp(ctx):
 # Admin commands
 # sethelp, shows available sets
 @bot.command(pass_context=True)
-async def verifyme(ctx):
+async def verifyall(ctx):
     if ctx.message.author.id == userIDs['owner']:
-        await verifyMember(ctx.message.author)
+        for mbr in ctx.message.server.members:
+            if ctx.message.author.id == userIDs['self']:
+                continue
+            try:
+                await verifyMember(mbr)
+            except discord.errors.Forbidden:
+                continue
 
 
 # handles on member join stuff
@@ -224,6 +232,10 @@ async def on_member_join(member):
 
 # handles verification
 async def verifyMember(member):
+
+    if member.id == userIDs['self']:
+        return
+
     log.log('Verifying user: ' + member.name, dt.getComplete())
     askforVerif_str = vrfSTR.format(mtn(member.id),
                                     bot.user.name,
@@ -233,44 +245,51 @@ async def verifyMember(member):
 
     await bot.send_message(member, askforVerif_str)
     for ch in bot.private_channels:
-        log.log('Retrieving channel...', dt.getComplete())
-        log.log('Channel recipients: '+str(len(ch.recipients)),
-                dt.getComplete())
         if member in ch.recipients and len(ch.recipients) == 1:
-
-            # dbh.insertPending(member.id, member.server.id, True)
-            # dbh.insertDMList(member.id, ch.id)
-            log.log(member.name+' successfully registered a PM Channel.',
-                    dt.getComplete()),
-            print('[ TST ] : This is the dm channel id : {} \
-with user : {}'.format(dbh.fetchDMChannelID(member.id), member.id))
-            log.log('This member is already registered.', dt.getComplete())
+            try:
+                log.log('Attempting to append...', dt.getComplete())
+                dbh.insertPending(member.id, member.server.id, True)
+                dbh.insertDMList(member.id, ch.id)
+                log.log(member.name+' successfully registered a PM Channel.',
+                        dt.getComplete())
+            except sqlite3.IntegrityError:
+                log.log('Member already pending. ', dt.getComplete())
             break
 
 
 # handles on message stuff
 @bot.event
 async def on_message(message):
+    # uncomment this part to turn on logging of messages in the console:
+    # log.log('User : '+message.author.name+' Message : '+message.content +
+    #         ' Channel : '+message.channel.id, dt.getComplete())
 
     authorID = message.author.id
 
     # handles verification in private messages
     # passed by verifyMember
-    if message.content == 'yes' and \
-       message.channel.id == dbh.fetchDMChannelID(authorID):
-        role = mbr_role[dbh.fetchPendingServerID(authorID)]
-        await bot.send_message(bot.get_channel(dbh.fetchDMChannelID(authorID)),
-                               '**Your response has been noted!** \n' +
-                               'Please enjoy your stay in the server!' +
-                               '\n\n *You have been assigned the* ***' +
-                               role.name + '*** *role*')
-        log.log('User: ' + message.author.name + ' has been verified.',
-                dt.getComplete())
-        await bot.add_roles(get(bot.get_server(pending_r[authorID]).members,
-                            id=authorID), mbr_role[pending_r[authorID]])
-        log.log(role.name + ' has been assigned to ' + message.author.name,
-                dt.getComplete())
-        dbh.updatePending(authorID, dbh.fetchPendingServerID(authorID), False)
+    try:
+        if message.content.lower() == 'yes' and \
+           message.channel.id == dbh.fetchDMChannelID(authorID):
+            role = mbr_role[dbh.fetchPendingServerID(authorID)]
+            svr = bot.get_server(dbh.fetchPendingServerID(authorID))
+            mbr = get(svr.members, id=authorID)
+
+            # bot responds to verification
+            await bot.send_message(message.channel,
+                                   vrf_response.format(role.name))
+            log.log('User: ' + message.author.name + ' has been verified.',
+                    dt.getComplete())
+
+            # bot assigns member role
+            await bot.add_roles(mbr, role)
+            log.log(role.name + ' has been assigned to ' + message.author.name,
+                    dt.getComplete())
+
+            # bot drops pending case
+            dbh.dropPending(authorID)
+    except TypeError:
+        pass
 
     # this registers last and second to the last messages, on each channel.
     global last_msg
@@ -302,8 +321,9 @@ async def on_message(message):
 # passes file IOs to strings to avoid unhandled file IO errors
 vrfSTR = fIO(txt_f['verify'])
 rhelpSTR = fIO(txt_f['rhelp'])
+vrf_response = fIO(txt_f['vrfres'])
 
 # initializes database upon start
 dbh.init()
 # change token to your bot's token.
-bot.run('NDQ0MTUzMzM2MjY3MTQ1MjE2.DdbQhg.7fQWe59TSBgicbzOp26d2b1mGvU')
+bot.run('NDQyNzIyMzg4NzU3NDQ2Njcx.DdddAg.TINE28otpcCxHXj_FP8s7OFOAQw')
