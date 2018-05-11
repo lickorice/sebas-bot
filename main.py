@@ -219,43 +219,43 @@ async def on_message(message):
 
     # handles greetings
     for greet in morning_greetings:
-        if greet is message.content.lower() and authorID != botID:
+        if greet == message.content.lower() and authorID != botID:
             greeting = 'Good morning, young master ' + mtn(authorID)
             await bot.send_message(message.channel, greeting)
             break
 
     for greet in day_greetings:
-        if greet is message.content.lower() and authorID != botID:
+        if greet == message.content.lower() and authorID != botID:
             greeting = 'Good day, young master ' + mtn(authorID)
             await bot.send_message(message.channel, greeting)
             break
 
     for greet in evening_greetings:
-        if greet is message.content.lower() and authorID != botID:
+        if greet == message.content.lower() and authorID != botID:
             greeting = 'Good evening, young master ' + mtn(authorID)
             await bot.send_message(message.channel, greeting)
             break
 
     for greet in afternoon_greetings:
-        if greet is message.content.lower() and authorID != botID:
+        if greet == message.content.lower() and authorID != botID:
             greeting = 'Good afternoon, young master ' + mtn(authorID)
             await bot.send_message(message.channel, greeting)
             break
 
     for greet in night_greetings:
-        if greet is message.content.lower() and authorID != botID:
+        if greet == message.content.lower() and authorID != botID:
             greeting = 'Good night, young master ' + mtn(authorID)
             await bot.send_message(message.channel, greeting)
             break
 
     for greet in hello_greetings:
-        if greet is message.content.lower() and authorID != botID:
+        if greet == message.content.lower() and authorID != botID:
             greeting = 'Greetings, young master ' + mtn(authorID)
             await bot.send_message(message.channel, greeting)
             break
 
     for greet in bye_greetings:
-        if greet is message.content.lower() and authorID != botID:
+        if greet == message.content.lower() and authorID != botID:
             greeting = 'Godspeed, young master ' + mtn(authorID)
             await bot.send_message(message.channel, greeting)
             break
@@ -264,4 +264,4 @@ async def on_message(message):
 
 
 # change token to your bot's token.
-bot.run('NDQyNzIyMzg4NzU3NDQ2Njcx.DdDFWQ.rLHEmKpSwJSzm-QqA45H1ZqHL6I')
+bot.run('NDQ0MTUzMzM2MjY3MTQ1MjE2.DdbQhg.7fQWe59TSBgicbzOp26d2b1mGvU')
