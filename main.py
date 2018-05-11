@@ -43,7 +43,7 @@ cmdNum = 0  # total number of commands in instance
 version = '0.4 beta'
 
 strikes = {'id': 0}
-userIDs = {'owner': '319285994253975553', 'self': '444153336267145216'}
+userIDs = {'owner': '319285994253975553', 'self': '442722388757446671'}
 imgs = {'avatar': 'https://avatars0.githubusercontent.com/u/14945942?s=400&u=\
 563ecf361e3cc4d40074868152d10951ca5e85b2&v=4'}
 
