@@ -330,4 +330,4 @@ vrf_response = fIO(txt_f['vrfres'])
 # initializes database upon start
 dbh.init()
 # change token to your bot's token.
-bot.run('NDQyNzIyMzg4NzU3NDQ2Njcx.DdddAg.TINE28otpcCxHXj_FP8s7OFOAQw')
+bot.run('NDQyNzIyMzg4NzU3NDQ2Njcx.Dddf2g.JuVezt19s5GRs6MDROQ0a5Go2a4')
