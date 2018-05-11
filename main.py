@@ -58,6 +58,7 @@ hello_greetings = ['hello', 'hi', 'herro']
 # declares a dictionary of the last, and second to the last messages
 last_msg = {'channel': 'id'}
 next_msg = {'channel': 'id'}
+privChan = {'user_id': 'channel_id'}
 
 
 # mention function
@@ -149,7 +150,7 @@ async def react(ctx, para=None, charstr=None, msgID=None):
             await bot.delete_message(ctx.message)
             last_msg[ctx.message.channel.id] = next_msg[ctx.message.channel.id]
             for char in charstr.lower():
-                log.action('Reacting to ' + msgID, dt.getComplete)
+                log.action('Reacting to ' + msgID, dt.getComplete())
                 await bot.add_reaction(message=target_msg,
                                        emoji=emoji.chrs[char])
         else:
@@ -187,9 +188,41 @@ with the following `message`. **Repeated letters do not count.** \n \
 Sets include:\n`hearts` - emojis of hearts')
 
 
+# handles on member join stuff
+@bot.event
+async def on_member_join(member):
+    log.log("New user joined! User ID: "+member.id, dt.getComplete())
+    askforVerif_str = (mtn(member.id)+"\n**Hello!** I am **"+bot.user.name+"**\
+, **" + member.server.name+"'s** homemade security and moderat\
+ion bot, developed by none other than "+mtn(userIDs['owner'])+" himself! \n\n\
+I am required to ask if you have **read the server #rules** in " +
+                       "**"+member.server.name+"**.\n\n"
+                       + "Please reply with `yes` if you have, and you will \
+be *given permissions*  to access the server's public channels. Thank you.")
+    await bot.send_message(member, askforVerif_str)
+
+    for ch in bot.private_channels:
+        log.log('Retrieving channel...', dt.getComplete())
+        log.log('Channel recipients: '+str(len(ch.recipients)),
+                dt.getComplete())
+        if member in ch.recipients and len(ch.recipients) == 1:
+            log.log('New member successfully registered PM Channel.',
+                    dt.getComplete())
+            privChan[member.id] = ch.id
+            break
+
+
 # handles on message stuff
 @bot.event
 async def on_message(message):
+
+    authorID = message.author.id
+
+    # handles verification in private messages
+    # passed by on_member_join()
+    if message.content == 'yes' and message.channel.id == privChan[authorID]:
+        await bot.send_message(bot.get_channel(privChan[authorID]),
+                               'received')
 
     # this registers last and second to the last messages, on each channel.
     global last_msg
@@ -198,8 +231,6 @@ async def on_message(message):
         if message.id != last_msg[message.channel.id]:
             next_msg[message.channel.id] = last_msg[message.channel.id]
     last_msg[message.channel.id] = message.id
-
-    authorID = message.author.id
 
     # handles advertising discord links
     if 'discord.gg' in message.content:
