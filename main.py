@@ -25,6 +25,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 import discord
+import dbhelper
 from discord.ext import commands
 from discord.utils import get
 import asyncio
@@ -38,7 +39,7 @@ botID = '442722388757446671'
 dt = DateSerializer()
 cmdNum = 0  # total number of commands in instance
 
-version = '0.2 alpha'
+version = '0.3 alpha'
 
 strikes = {'id': 0}
 userIDs = {'owner': '319285994253975553'}
@@ -47,14 +48,13 @@ imgs = {'avatar': 'https://avatars0.githubusercontent.com/u/14945942?s=400&u=\
 
 log = Logger()
 emoji = EmojiHandler()
+dbh = dbhelper.DBHelper()
 
-morning_greetings = ['good morning', 'ohayou', 'ohaiyou', 'ohayo', 'gm']
-afternoon_greetings = ['good afternoon', 'good pm']
-evening_greetings = ['good evening', 'evening']
-day_greetings = ['good day']
-night_greetings = ['good night', 'gn']
-bye_greetings = ['i gtg']
-hello_greetings = ['hello', 'hi', 'herro']
+# dictionary provides text files to look for
+txt_f = {'splash': 'txt/splash.txt',
+         'help': 'txt/help.txt',
+         'verify': 'txt/verify.txt',
+         'rhelp': 'txt/rhelp.txt'}
 
 # declares a dictionary of the last, and second to the last messages
 last_msg = {'channel': 'id'}
@@ -63,6 +63,13 @@ privChan = {'user_id': 'channel_id'}
 
 pending_r = {'user_id': 'server_id'}
 mbr_role = {}
+
+
+# function to read .txt files
+def fIO(file):
+    with open(file, 'r') as file:
+        file_contents = file.read()
+        return file_contents
 
 
 # mention function
@@ -80,9 +87,7 @@ def cmdCount():
 @asyncio.coroutine
 async def on_ready():
     # Sebas' welcome message :)
-    with open('splash.txt', 'r') as file:
-        file_contents = file.read()
-        print(file_contents)
+    print(fIO(txt_f['splash']))
     print('\rInitialzing {}...'.format(bot.user.name))
     print('{} is up and running.'.format(bot.user.name))
     print('This bot is created by Carlos Panganiban (lickorice)')
@@ -95,7 +100,14 @@ async def on_ready():
     for svr in bot.servers:
         log.log("Initialzing " + svr.name + "...", dt.getComplete())
         global mbr_role  # declares 'default member role list'
-        mbr_role[svr.id] = get(svr.roles, name="Member")
+        role = get(svr.roles, name="Member")
+        if role:
+            mbr_role[svr.id] = role
+            log.log("Fetching member role from " + svr.name + "...",
+                    dt.getComplete())
+        else:
+            log.log("No member roles found for " + svr.name, dt.getComplete())
+        log.log(svr.name + " has been initialized.", dt.getComplete())
 
 
 # kill command
@@ -176,7 +188,7 @@ for more information.')
                     await bot.add_reaction(message=target_msg, emoji=reaction)
             else:
                 await bot.send_message(ctx.message.channel,
-                                       'That set does not exist! Do ..rhelp\
+                                       'That set does not exist! Do `..rhelp`\
 for more information.')
         else:
             await bot.send_message(ctx.message.channel,
@@ -189,74 +201,50 @@ for more information.')
 # sethelp, shows available sets
 @bot.command(pass_context=True)
 async def rhelp(ctx):
-    await bot.send_message(ctx.message.channel,
-                           '**How** `..react` **works:** \n \
-`..react (str/set) (message/set)`\n `str` makes ' + bot.user.name + ' react \
-with the following `message`. **Repeated letters do not count.** \n \
-`set` makes ' + bot.user.name + ' react with a following premade set.\
-Sets include:\n`hearts` - emojis of hearts')
+    await bot.send_message(ctx.message.channel, rhelpSTR.format(bot.user.name,
+                                                                bot.user.name
+                                                                ))
 
 
 # BEYOND THIS POINT:
 # Admin commands
 # sethelp, shows available sets
 @bot.command(pass_context=True)
-async def verifyall(ctx):
+async def verifyme(ctx):
     if ctx.message.author.id == userIDs['owner']:
-        for mbr in ctx.message.channel.server.members:
-            log.log('Verifying user: ' + mbr.name, dt.getComplete())
-            askforVerif_str = (mtn(mbr.id)+"\n**Hello!** I am **" +
-                               bot.user.name+"**, **"+mbr.server.name +
-                               "'s** homemade security and moderat\
-ion bot, developed by none other than "+mtn(userIDs['owner'])+" himself! \n\n\
-I am required to ask if you have **read the server #rules** in " +
-                               "**"+mbr.server.name+"**.\n\n"
-                               + "Please reply with `yes` if you have, and you\
- will be *given permissions*  to access the server's public channels.\n\n\
- Thank you.")
-
-            await bot.send_message(mbr, askforVerif_str)
-
-            for ch in bot.private_channels:
-                log.log('Retrieving channel...', dt.getComplete())
-                log.log('Channel recipients: '+str(len(ch.recipients)),
-                        dt.getComplete())
-                if mbr in ch.recipients and len(ch.recipients) == 1:
-                    log.log(mbr.name+' successfully registered a PM Channel.',
-                            dt.getComplete())
-                    privChan[mbr.id] = ch.id
-                    pending_r[mbr.id] = mbr.server.id
-                    break
-
-
-# handles on bot server joins
-async def on_server_join(server):
-    pass
+        await verifyMember(ctx.message.author)
 
 
 # handles on member join stuff
 @bot.event
 async def on_member_join(member):
     log.log("New user joined! User ID: "+member.id, dt.getComplete())
-    askforVerif_str = (mtn(member.id)+"\n**Hello!** I am **"+bot.user.name+"**\
-, **" + member.server.name+"'s** homemade security and moderat\
-ion bot, developed by none other than "+mtn(userIDs['owner'])+" himself! \n\n\
-I am required to ask if you have **read the server #rules** in " +
-                       "**"+member.server.name+"**.\n\n"
-                       + "Please reply with `yes` if you have, and you will \
-be *given permissions*  to access the server's public channels. Thank you.")
+    await verifyMember(member)
+
+
+# handles verification
+async def verifyMember(member):
+    log.log('Verifying user: ' + member.name, dt.getComplete())
+    askforVerif_str = vrfSTR.format(mtn(member.id),
+                                    bot.user.name,
+                                    member.server.name,
+                                    mtn(userIDs['owner']),
+                                    member.server.name)
 
     await bot.send_message(member, askforVerif_str)
-
     for ch in bot.private_channels:
         log.log('Retrieving channel...', dt.getComplete())
         log.log('Channel recipients: '+str(len(ch.recipients)),
                 dt.getComplete())
         if member in ch.recipients and len(ch.recipients) == 1:
-            log.log('New member successfully registered PM Channel.',
-                    dt.getComplete())
-            privChan[member.id] = ch.id
-            pending_r[member.id] = member.server.id
+
+            # dbh.insertPending(member.id, member.server.id, True)
+            # dbh.insertDMList(member.id, ch.id)
+            log.log(member.name+' successfully registered a PM Channel.',
+                    dt.getComplete()),
+            print('[ TST ] : This is the dm channel id : {} \
+with user : {}'.format(dbh.fetchDMChannelID(member.id), member.id))
+            log.log('This member is already registered.', dt.getComplete())
             break
 
 
@@ -267,10 +255,11 @@ async def on_message(message):
     authorID = message.author.id
 
     # handles verification in private messages
-    # passed by on_member_join()
-    if message.content == 'yes' and message.channel.id == privChan[authorID]:
-        role = mbr_role[pending_r[authorID]]
-        await bot.send_message(bot.get_channel(privChan[authorID]),
+    # passed by verifyMember
+    if message.content == 'yes' and \
+       message.channel.id == dbh.fetchDMChannelID(authorID):
+        role = mbr_role[dbh.fetchPendingServerID(authorID)]
+        await bot.send_message(bot.get_channel(dbh.fetchDMChannelID(authorID)),
                                '**Your response has been noted!** \n' +
                                'Please enjoy your stay in the server!' +
                                '\n\n *You have been assigned the* ***' +
@@ -281,6 +270,7 @@ async def on_message(message):
                             id=authorID), mbr_role[pending_r[authorID]])
         log.log(role.name + ' has been assigned to ' + message.author.name,
                 dt.getComplete())
+        dbh.updatePending(authorID, dbh.fetchPendingServerID(authorID), False)
 
     # this registers last and second to the last messages, on each channel.
     global last_msg
@@ -306,51 +296,14 @@ async def on_message(message):
  public channels is **a bannable offense!** \n ***This will be\
  your last warning!***")
 
-    # handles greetings
-    for greet in morning_greetings:
-        if greet == message.content.lower() and authorID != botID:
-            greeting = 'Good morning, young master ' + mtn(authorID)
-            await bot.send_message(message.channel, greeting)
-            break
-
-    for greet in day_greetings:
-        if greet == message.content.lower() and authorID != botID:
-            greeting = 'Good day, young master ' + mtn(authorID)
-            await bot.send_message(message.channel, greeting)
-            break
-
-    for greet in evening_greetings:
-        if greet == message.content.lower() and authorID != botID:
-            greeting = 'Good evening, young master ' + mtn(authorID)
-            await bot.send_message(message.channel, greeting)
-            break
-
-    for greet in afternoon_greetings:
-        if greet == message.content.lower() and authorID != botID:
-            greeting = 'Good afternoon, young master ' + mtn(authorID)
-            await bot.send_message(message.channel, greeting)
-            break
-
-    for greet in night_greetings:
-        if greet == message.content.lower() and authorID != botID:
-            greeting = 'Good night, young master ' + mtn(authorID)
-            await bot.send_message(message.channel, greeting)
-            break
-
-    for greet in hello_greetings:
-        if greet == message.content.lower() and authorID != botID:
-            greeting = 'Greetings, young master ' + mtn(authorID)
-            await bot.send_message(message.channel, greeting)
-            break
-
-    for greet in bye_greetings:
-        if greet == message.content.lower() and authorID != botID:
-            greeting = 'Godspeed, young master ' + mtn(authorID)
-            await bot.send_message(message.channel, greeting)
-            break
-
     await bot.process_commands(message)
 
 
+# passes file IOs to strings to avoid unhandled file IO errors
+vrfSTR = fIO(txt_f['verify'])
+rhelpSTR = fIO(txt_f['rhelp'])
+
+# initializes database upon start
+dbh.init()
 # change token to your bot's token.
 bot.run('NDQ0MTUzMzM2MjY3MTQ1MjE2.DdbQhg.7fQWe59TSBgicbzOp26d2b1mGvU')
