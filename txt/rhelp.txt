@@ -1,0 +1,7 @@
+**How** `..react` **works:**
+`..react (str/set) (message/set)`\n
+
+`str` makes **{}** react with the following `message`. **Repeated letters do not count.**
+
+`set` makes **{}** react with a following premade set. Sets include:
+`hearts` - emojis of hearts

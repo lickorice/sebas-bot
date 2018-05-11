@@ -1,0 +1,5 @@
+{}, **Hello!** I am **{}**, **{}'s** homemade security and moderation bot, developed by none other than {} himself!
+
+I am required to ask if you have **read the server #rules** in **{}**.
+
+Please reply with `yes` if you have, and you will be *given permissions*  to access the server's public channels. Thank you.
