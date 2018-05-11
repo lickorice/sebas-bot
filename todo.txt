@@ -1,0 +1,5 @@
+THINGS TO DO
+[*]> migrate all available data to SQLite, linked dictionaries, etc
+[D]> unimplement greeting feature
+[ ]> solidify DM feature
+[ ]> customizable DM all feature for admin
