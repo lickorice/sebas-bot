@@ -36,16 +36,19 @@ from emoji import EmojiHandler
 
 
 bot = commands.Bot(command_prefix='..')
+bot.remove_command('help')
 botID = '442722388757446671'
 dt = DateSerializer()
 cmdNum = 0  # total number of commands in instance
 
-version = '0.4 beta'
+version = '1.0 stable release'
 
 strikes = {'id': 0}
-userIDs = {'owner': '319285994253975553', 'self': '444153336267145216'}
+userIDs = {'owner': '319285994253975553', 'self': '442722388757446671'}
 imgs = {'avatar': 'https://avatars0.githubusercontent.com/u/14945942?s=400&u=\
-563ecf361e3cc4d40074868152d10951ca5e85b2&v=4'}
+563ecf361e3cc4d40074868152d10951ca5e85b2&v=4',
+        'sebas_profile': 'https://cdn.discordapp.com/attachments/44414784649363\
+4560/444744084830289921/Sebas_Profile.png'}
 
 log = Logger()
 emoji = EmojiHandler()
@@ -61,12 +64,16 @@ txt_f = {'splash': 'txt/splash.txt',
          'v_chan_err': 'txt/verify_channel_set_error.txt',
          'v_chan_success': 'txt/verify_channel_set_success.txt'}
 
+# default help string
+helpstr = " Type `..help` for more information."
+
 # declares a dictionary of the last, and second to the last messages
 last_msg = {'channel': 'id'}
 next_msg = {'channel': 'id'}
 mbr_role = {}
 
 admins_all = ()
+mods_all = ()
 
 
 # function to read .txt files
@@ -112,6 +119,11 @@ async def on_ready():
         else:
             log.log("No member roles found for " + svr.name, dt.getComplete())
         log.log(svr.name + " has been initialized.", dt.getComplete())
+
+        # changes presence
+        await bot.change_presence(game=discord.Game(name='..help for help'))
+
+        # checks if member has admin perms
         for mbr in svr.members:
             mbr_has_perms = False
             for adminRoleName in ['admin', 'administrator', 'Admin',
@@ -120,6 +132,8 @@ async def on_ready():
                     mbr_has_perms = True
                     try:
                         dbh.insertAdmin(mbr.id, svr.id)
+                        log.log(mbr.name+' registered as admin.',
+                                dt.getComplete())
                     except sqlite3.IntegrityError:
                         log.log(mbr.name+' is already registered as admin.',
                                 dt.getComplete())
@@ -127,16 +141,44 @@ async def on_ready():
             if mbr_has_perms is False:
                 dbh.dropAdmin(mbr.id, svr.id)
 
+        # checks if member has mod perms
+        for mbr in svr.members:
+            mbr_has_perms = False
+            for modRoleName in ['mod', 'moderator', 'Mod',
+                                'Moderator', 'helper', 'help']:
+                if get(mbr.roles, name=modRoleName):
+                    mbr_has_perms = True
+                    try:
+                        dbh.insertMod(mbr.id, svr.id)
+                        log.log(mbr.name+' registered as mod.',
+                                dt.getComplete())
+                    except sqlite3.IntegrityError:
+                        log.log(mbr.name+' is already registered as mod.',
+                                dt.getComplete())
+                    break
+            if mbr_has_perms is False:
+                dbh.dropMod(mbr.id, svr.id)
+
         global admins_all
         admins_all = dbh.fetchallAdmins()
+        global mods_all
+        mods_all = dbh.fetchallMods()
 
 
 # kill command
 @bot.command(pass_context=True)
 async def leave(ctx):
-    await bot.send_message(ctx.message.channel, 'I shall take my leave. \
+    if isAdmin():
+        await bot.send_message(ctx.message.channel, 'I shall take my leave. \
 Thank you.')
     await bot.close()
+
+
+# shows help
+@bot.command(pass_context=True)
+async def help(ctx):
+    cmdCount()
+    await bot.send_message(ctx.message.author, master_help)
 
 
 @bot.command(pass_context=True)
@@ -144,36 +186,43 @@ async def info(ctx):
     # Prints developer info
     log.action('Info method called.', dt.getComplete())
     cmdCount()
-    e = discord.Embed()
+    e = discord.Embed(color=0xf8f8f8)
     e.add_field(name='Developer', value=mtn(userIDs['owner']), inline=False)
     e.add_field(name='Version', value=version, inline=False)
+    gitLink = 'https://github.com/lickorice/sebas-bot'
+    e.add_field(name='GitHub Link', value=gitLink, inline=False)
     e.add_field(name='Number of commands since startup:', value=str(cmdNum),
                 inline=True)
     e.set_footer(text="developed by lickorice, May 2018",
                  icon_url=imgs['avatar'])
+    e.set_image(url=imgs['sebas_profile'])
     await bot.send_message(ctx.message.channel, embed=e)
 
 
 @bot.command(pass_context=True)
 async def add(ctx, a, b):
+    cmdCount()
     log.action('Adding numbers...', dt.getComplete())
     await bot.send_message(ctx.message.channel, str(int(a)+int(b)))
 
 
 @bot.command(pass_context=True)
 async def multiply(ctx, a, b):
+    cmdCount()
     log.action('Multiplying numbers...', dt.getComplete())
     await bot.send_message(ctx.message.channel, str(int(a)*int(b)))
 
 
 @bot.command(pass_context=True)
 async def divide(ctx, a, b):
+    cmdCount()
     log.action('Dividing numbers...', dt.getComplete())
     await bot.send_message(ctx.message.channel, str(int(a)/int(b)))
 
 
 @bot.command(pass_context=True)
 async def subtract(ctx, a, b):
+    cmdCount()
     log.action('Subtracting numbers...', dt.getComplete())
     await bot.send_message(ctx.message.channel, str(int(a)-int(b)))
 
@@ -181,6 +230,7 @@ async def subtract(ctx, a, b):
 # block react command
 @bot.command(pass_context=True)
 async def react(ctx, para=None, charstr=None, msgID=None):
+    cmdCount()
     if msgID is None:
         msgID = next_msg[ctx.message.channel.id]
 
@@ -222,6 +272,7 @@ for more information.')
 # sethelp, shows available sets
 @bot.command(pass_context=True)
 async def rhelp(ctx):
+    cmdCount()
     await bot.send_message(ctx.message.channel, rhelpSTR.format(bot.user.name,
                                                                 bot.user.name
                                                                 ))
@@ -230,6 +281,7 @@ async def rhelp(ctx):
 # manual verification command, special perms
 @bot.command(pass_context=True)
 async def verifyme(ctx):
+    cmdCount()
     chn = ctx.message.channel
     svr = chn.server
     mbr = ctx.message.author
@@ -243,6 +295,52 @@ already **verified**.".format(mbr.id))
 
 
 # BEYOND THIS POINT:
+# Moderator commands
+def isMod(ctx):
+    if ctx.message.author.id == userIDs['owner'] or\
+       (ctx.message.author.id, ctx.message.channel.server.id,) in admins_all\
+       or (ctx.message.author.id, ctx.message.channel.server.id,) in mods_all:
+        return True
+    else:
+        return False
+
+
+@bot.command(pass_context=True)
+async def verifyuser(ctx):
+    cmdCount()
+
+    async def verify_through_DM(userID):
+        # checks if raw user ID is not invalid
+        if get(ctx.message.channel.server.members, id=userID):
+            mbr = get(ctx.message.channel.server.members, id=userID)
+            # checks if user is a member
+            if get(mbr.roles, name="Member"):
+                await bot.send_message(ctx.message.channel,
+                                       '<@{}> is already \
+**verified.**'.format(userID))
+                return
+            # verifies if not member
+            else:
+                await verifyMember(mbr)
+                await bot.send_message(ctx.message.channel, 'Sending a **verif\
+ication message** to {} .'.format(mbr.name))
+        # alerts that the user does not exist.
+        else:
+            await bot.send_message(ctx.message.channel,
+                                   'Invalid user **ID.**')
+
+    if isMod(ctx):
+        if ctx.message.mentions[0]:
+            await verify_through_DM(ctx.message.mentions[0].id)
+        else:
+            await bot.send_message(ctx.message.channel,
+                                   "Please mention user." + helpstr)
+    else:
+        await bot.send_message(ctx.message.channel,
+                               "You aren't **authorized** to do that.")
+
+
+# BEYOND THIS POINT:
 # Admin commands
 def isAdmin(ctx):
     if ctx.message.author.id == userIDs['owner'] or\
@@ -252,9 +350,65 @@ def isAdmin(ctx):
         return False
 
 
+# DM all feature
+@bot.command(pass_context=True)
+async def dmall(ctx, string):
+    cmdCount()
+    if isAdmin(ctx):
+        await bot.send_message(ctx.message.channel, 'Sending message to all.')
+        for mbr in ctx.message.channel.server.members:
+            if mbr.id == userIDs['self']:
+                continue
+            try:
+                log.log('Sending message to '+mbr.name, dt.getComplete())
+                await bot.send_message(mbr, string+"\n\n*This message is sent \
+by*  <@{}>".format(ctx.message.author.id))
+            except discord.errors.Forbidden:
+                pass
+    else:
+        await bot.send_message(ctx.message.channel,
+                               "You aren't **authorized** to do that.")
+
+
+# command to refresh the roles in case of role change
+@bot.command(pass_context=True)
+async def consolidateroles(ctx):
+    cmdCount()
+    if isAdmin(ctx):
+        svr = ctx.message.channel.server
+        for mbr in svr.members:
+            mbr_has_perms = False
+            for modRoleName in ['mod', 'moderator', 'Mod',
+                                'Moderator', 'helper', 'help']:
+                if get(mbr.roles, name=modRoleName):
+                    mbr_has_perms = True
+                    try:
+                        dbh.insertMod(mbr.id, svr.id)
+                        log.log(mbr.name+' registered as mod.',
+                                dt.getComplete())
+                    except sqlite3.IntegrityError:
+                        log.log(mbr.name+' is already registered as mod.',
+                                dt.getComplete())
+                    break
+            if mbr_has_perms is False:
+                dbh.dropMod(mbr.id, svr.id)
+
+        global admins_all
+        admins_all = dbh.fetchallAdmins()
+        global mods_all
+        mods_all = dbh.fetchallMods()
+
+        await bot.send_message(ctx.message.channel,
+                               'Roles successfully **consolidated**.')
+    else:
+        await bot.send_message(ctx.message.channel,
+                               "You aren't **authorized** to do that.")
+
+
 # sets the manual verification channel
 @bot.command(pass_context=True)
 async def setvrfchannel(ctx):
+    cmdCount()
     svr = ctx.message.channel.server
     chn = ctx.message.channel
     if isAdmin(ctx):
@@ -280,6 +434,7 @@ async def setvrfchannel(ctx):
 # removes the manual verification channel
 @bot.command(pass_context=True)
 async def rmvrfchannel(ctx):
+    cmdCount()
     svr = ctx.message.channel.server
     chn = ctx.message.channel
     cur_chn = bot.get_channel(dbh.fetchVerifyChannel(svr.id))
@@ -295,6 +450,7 @@ async def rmvrfchannel(ctx):
 # manual verification of ALL members. use with discretion.
 @bot.command(pass_context=True)
 async def verifyall(ctx):
+    cmdCount()
     if isAdmin(ctx):
         for mmbr in ctx.message.server.members:
             if ctx.message.author.id == userIDs['self']:
@@ -343,7 +499,10 @@ async def verifyMember(member):
             try:
                 log.log('Attempting to append...', dt.getComplete())
                 dbh.insertPending(member.id, member.server.id, True)
-                dbh.insertDMList(member.id, ch.id)
+                try:
+                    dbh.insertDMList(member.id, ch.id)
+                except sqlite3.IntegrityError:
+                    pass
                 log.log(member.name+' successfully registered a PM Channel.',
                         dt.getComplete())
             except sqlite3.IntegrityError:
@@ -430,6 +589,7 @@ async def on_message(message):
 
 
 # passes file IOs to strings to avoid unhandled file IO errors
+master_help = fIO(txt_f['help'])
 vrfSTR = fIO(txt_f['verify'])
 rhelpSTR = fIO(txt_f['rhelp'])
 vrf_response = fIO(txt_f['vrfres'])
@@ -440,4 +600,4 @@ v_chan_set = fIO(txt_f['v_chan_success'])
 # initializes database upon start
 dbh.init()
 # change token to your bot's token.
-bot.run('NDQ0MTUzMzM2MjY3MTQ1MjE2.DdfpNQ.aMU-L4dU0gUU9CKEjCisvO1KvmY')
+bot.run(input("Enter token : "))

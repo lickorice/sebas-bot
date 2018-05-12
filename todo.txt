@@ -2,4 +2,10 @@ THINGS TO DO
 [D]> migrate all available data to SQLite, linked dictionaries, etc
 [D]> unimplement greeting feature
 [D]> solidify DM feature
-[ ]> customizable DM all feature for admin
+
+[D]> customizable DM all feature for admin
+[D]> send verification message for a certain user for moderators
+
+[ ]> report feature to sebas through DM
+[D]> revamp info
+[D]> build help
