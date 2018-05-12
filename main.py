@@ -43,7 +43,7 @@ cmdNum = 0  # total number of commands in instance
 version = '0.4 beta'
 
 strikes = {'id': 0}
-userIDs = {'owner': '319285994253975553', 'self': '442722388757446671'}
+userIDs = {'owner': '319285994253975553', 'self': '444153336267145216'}
 imgs = {'avatar': 'https://avatars0.githubusercontent.com/u/14945942?s=400&u=\
 563ecf361e3cc4d40074868152d10951ca5e85b2&v=4'}
 
@@ -56,15 +56,17 @@ txt_f = {'splash': 'txt/splash.txt',
          'help': 'txt/help.txt',
          'verify': 'txt/verify.txt',
          'rhelp': 'txt/rhelp.txt',
-         'vrfres': 'txt/verify_response.txt'}
+         'vrfres': 'txt/verify_response.txt',
+         'vrfres_m': 'txt/verify_response_manual.txt',
+         'v_chan_err': 'txt/verify_channel_set_error.txt',
+         'v_chan_success': 'txt/verify_channel_set_success.txt'}
 
 # declares a dictionary of the last, and second to the last messages
 last_msg = {'channel': 'id'}
 next_msg = {'channel': 'id'}
-privChan = {'user_id': 'channel_id'}
-
-pending_r = {'user_id': 'server_id'}
 mbr_role = {}
+
+admins_all = ()
 
 
 # function to read .txt files
@@ -110,6 +112,23 @@ async def on_ready():
         else:
             log.log("No member roles found for " + svr.name, dt.getComplete())
         log.log(svr.name + " has been initialized.", dt.getComplete())
+        for mbr in svr.members:
+            mbr_has_perms = False
+            for adminRoleName in ['admin', 'administrator', 'Admin',
+                                  'Administrator', 'owner', 'Owner']:
+                if get(mbr.roles, name=adminRoleName):
+                    mbr_has_perms = True
+                    try:
+                        dbh.insertAdmin(mbr.id, svr.id)
+                    except sqlite3.IntegrityError:
+                        log.log(mbr.name+' is already registered as admin.',
+                                dt.getComplete())
+                    break
+            if mbr_has_perms is False:
+                dbh.dropAdmin(mbr.id, svr.id)
+
+        global admins_all
+        admins_all = dbh.fetchallAdmins()
 
 
 # kill command
@@ -208,19 +227,91 @@ async def rhelp(ctx):
                                                                 ))
 
 
+# manual verification command, special perms
+@bot.command(pass_context=True)
+async def verifyme(ctx):
+    chn = ctx.message.channel
+    svr = chn.server
+    mbr = ctx.message.author
+
+    if (svr.id, chn.id,) in dbh.fetchallVChannels():
+        if get(mbr.roles, name='Member'):
+            await bot.send_message(chn, "<@{}>, you're \
+already **verified**.".format(mbr.id))
+        else:
+            await verify_response(mbr.id, ctx.message, type='manual')
+
+
 # BEYOND THIS POINT:
 # Admin commands
-# sethelp, shows available sets
+def isAdmin(ctx):
+    if ctx.message.author.id == userIDs['owner'] or\
+       (ctx.message.author.id, ctx.message.channel.server.id,) in admins_all:
+        return True
+    else:
+        return False
+
+
+# sets the manual verification channel
+@bot.command(pass_context=True)
+async def setvrfchannel(ctx):
+    svr = ctx.message.channel.server
+    chn = ctx.message.channel
+    if isAdmin(ctx):
+        try:
+            if chn == bot.get_channel(dbh.fetchVerifyChannel(svr.id)):
+                await bot.send_message(chn, '`#{}` is already a \
+**verification** channel.'.format(chn.name))
+                return
+        except TypeError:
+            pass
+
+        try:
+            dbh.insertVerifChannel(svr.id, chn.id)
+            await bot.send_message(chn, v_chan_set.format(chn.name))
+        except sqlite3.IntegrityError:
+            cur_chn = bot.get_channel(dbh.fetchVerifyChannel(svr.id))
+            await bot.send_message(chn, v_chan_error.format(cur_chn.name))
+    else:
+        await bot.send_message(ctx.message.channel,
+                               "You aren't **authorized** to do that.")
+
+
+# removes the manual verification channel
+@bot.command(pass_context=True)
+async def rmvrfchannel(ctx):
+    svr = ctx.message.channel.server
+    chn = ctx.message.channel
+    cur_chn = bot.get_channel(dbh.fetchVerifyChannel(svr.id))
+    if isAdmin(ctx) and cur_chn == chn:
+        await bot.send_message(chn, "`#{}` is no longer a \
+**verification** channel.".format(chn.name))
+        dbh.dropVerifyChannel(svr.id, chn.id)
+    else:
+        await bot.send_message(ctx.message.channel,
+                               "You aren't **authorized** to do that.")
+
+
+# manual verification of ALL members. use with discretion.
 @bot.command(pass_context=True)
 async def verifyall(ctx):
-    if ctx.message.author.id == userIDs['owner']:
-        for mbr in ctx.message.server.members:
+    if isAdmin(ctx):
+        for mmbr in ctx.message.server.members:
             if ctx.message.author.id == userIDs['self']:
                 continue
-            try:
-                await verifyMember(mbr)
-            except discord.errors.Forbidden:
-                continue
+
+            async def if_member_role(member_pending):
+                # this is to continue a nested for loop
+                for rle in member_pending.roles:
+                    if rle == get(ctx.message.server.roles, name="Member"):
+                        log.log('This is a member!', dt.getComplete())
+                        return
+                try:
+                    await verifyMember(member_pending)
+                except discord.errors.Forbidden:
+                    return  # this means the bot can't send the message.
+
+            await if_member_role(member_pending=mmbr)
 
     else:
         bot.send_message(ctx.message.channel,
@@ -236,7 +327,6 @@ async def on_member_join(member):
 
 # handles verification
 async def verifyMember(member):
-
     if member.id == userIDs['self']:
         return
 
@@ -261,6 +351,39 @@ async def verifyMember(member):
             break
 
 
+# this is the verification response function
+async def verify_response(authorID, message, type='onMessage'):
+    role = mbr_role[dbh.fetchPendingServerID(authorID)]
+    svr = bot.get_server(dbh.fetchPendingServerID(authorID))
+    mbr = get(svr.members, id=authorID)
+
+    # bot responds to verification depending on verif type
+    if type == 'onMessage':
+        await bot.send_message(message.channel,
+                               vrf_response.format(role.name))
+        log.log('User: ' + message.author.name + ' has been verified.',
+                dt.getComplete())
+    elif type == 'manual':
+        await bot.send_message(message.channel,
+                               vrf_response_manual.format(message.author.id,
+                                                          message.server.name))
+        log.log('User: ' + message.author.name + ' has been verified.',
+                dt.getComplete())
+    else:
+        log.log('Invalid verification type.', dt.getComplete())
+        return
+
+    # bot assigns member role
+    await bot.add_roles(mbr, role)
+    log.log(role.name + ' has been assigned to ' + message.author.name,
+            dt.getComplete())
+
+    # bot drops pending case
+    log.log(message.author.name+"'s pending case has been dropped.",
+            dt.getComplete())
+    dbh.dropPending(authorID)
+
+
 # handles on message stuff
 @bot.event
 async def on_message(message):
@@ -275,23 +398,7 @@ async def on_message(message):
     try:
         if message.content.lower() == 'yes' and \
            message.channel.id == dbh.fetchDMChannelID(authorID):
-            role = mbr_role[dbh.fetchPendingServerID(authorID)]
-            svr = bot.get_server(dbh.fetchPendingServerID(authorID))
-            mbr = get(svr.members, id=authorID)
-
-            # bot responds to verification
-            await bot.send_message(message.channel,
-                                   vrf_response.format(role.name))
-            log.log('User: ' + message.author.name + ' has been verified.',
-                    dt.getComplete())
-
-            # bot assigns member role
-            await bot.add_roles(mbr, role)
-            log.log(role.name + ' has been assigned to ' + message.author.name,
-                    dt.getComplete())
-
-            # bot drops pending case
-            dbh.dropPending(authorID)
+            await verify_response(authorID, message)
     except TypeError:
         pass
 
@@ -326,8 +433,11 @@ async def on_message(message):
 vrfSTR = fIO(txt_f['verify'])
 rhelpSTR = fIO(txt_f['rhelp'])
 vrf_response = fIO(txt_f['vrfres'])
+vrf_response_manual = fIO(txt_f['vrfres_m'])
+v_chan_error = fIO(txt_f['v_chan_err'])
+v_chan_set = fIO(txt_f['v_chan_success'])
 
 # initializes database upon start
 dbh.init()
 # change token to your bot's token.
-bot.run('NDQyNzIyMzg4NzU3NDQ2Njcx.Dddf2g.JuVezt19s5GRs6MDROQ0a5Go2a4')
+bot.run('NDQ0MTUzMzM2MjY3MTQ1MjE2.DdfpNQ.aMU-L4dU0gUU9CKEjCisvO1KvmY')

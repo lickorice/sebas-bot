@@ -24,6 +24,19 @@ class DBHelper():
                         privatechannelID TEXT unique
         )''')
         db.commit()
+        c.execute('''CREATE TABLE IF NOT EXISTS admin_list(
+                        id INTEGER PRIMARY KEY,
+                        userID TEXT,
+                        serverID TEXT,
+                        UNIQUE(userID, serverID)
+        )''')
+        db.commit()
+        c.execute('''CREATE TABLE IF NOT EXISTS v_channels_list(
+                        id INTEGER PRIMARY KEY,
+                        serverID TEXT UNIQUE,
+                        channelID TEXT UNIQUE
+        )''')
+        db.commit()
 
     def insertPending(self, userID, serverID, pending):
         # inserts a row to the pending list
@@ -39,6 +52,21 @@ class DBHelper():
         c.execute('''INSERT INTO dm_list(userID, privatechannelID)
                     VALUES(?, ?)''', (userID, channelID))
         print('[ DB- ] : {} inserted into dm channels database'.format(userID))
+        db.commit()
+
+    def insertAdmin(self, userID, serverID):
+        # inserts a row to the DM Channels list
+        c = db.cursor()
+        c.execute('''INSERT INTO admin_list(userID, serverID)
+                    VALUES(?, ?)''', (userID, serverID))
+        print('[ DB- ] : {} inserted into admins database'.format(userID))
+        db.commit()
+
+    def insertVerifChannel(self, serverID, channelID):
+        # inserts a row to the DM Channels list
+        c = db.cursor()
+        c.execute('''INSERT INTO v_channels_list(serverID, channelID)
+                    VALUES(?, ?)''', (serverID, channelID))
         db.commit()
 
     def fetchDMChannelID(self, userID):
@@ -57,8 +85,40 @@ class DBHelper():
         serverID = c.fetchone()
         return serverID[0]
 
+    def fetchVerifyChannel(self, serverID):
+        c = db.cursor()
+        c.execute('''SELECT channelID FROM v_channels_list
+                    WHERE serverID = ?''',
+                  (serverID,))
+        channelID = c.fetchone()
+        return channelID[0]
+
+    def fetchallAdmins(self):
+        c = db.cursor()
+        c.execute('''SELECT userID, serverID FROM admin_list''')
+        adminList = c.fetchall()
+        return adminList
+
+    def fetchallVChannels(self):
+        c = db.cursor()
+        c.execute('''SELECT serverID, channelID FROM v_channels_list''')
+        VChannelList = c.fetchall()
+        return VChannelList
+
     def dropPending(self, userID):
         c = db.cursor()
         c.execute('''DELETE FROM pending_list WHERE userID = ?''',
                   (userID,))
+        db.commit()
+
+    def dropAdmin(self, userID, serverID):
+        c = db.cursor()
+        c.execute('''DELETE FROM admin_list WHERE(userID = ?
+                    AND serverID = ?)''', (userID, serverID))
+        db.commit()
+
+    def dropVerifyChannel(self, serverID, channelID):
+        c = db.cursor()
+        c.execute('''DELETE FROM v_channels_list WHERE(serverID = ?
+                    AND channelID = ?)''', (serverID, channelID))
         db.commit()
