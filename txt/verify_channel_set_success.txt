@@ -1,0 +1,3 @@
+`#{}` has been successfully set as the **manual verification** channel!
+
+New users may now come here and do `..verifyme` just in case I am unable to contact them.

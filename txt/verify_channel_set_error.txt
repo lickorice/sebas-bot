@@ -1,0 +1,4 @@
+There can only be **one** channel.
+The current verification channel for this server is `#{}`.
+
+If you wish to remove that channel, navigate to that channel and do `..rmvrfchannel` in order to un-set its assignment as the **manual verification** channel.
