@@ -1,0 +1,26 @@
+These are the following **commands** that I am to listen for:
+
+`..verifyme` in the ***appropriate verification channel***  **allows me to verify you** if you still haven't a **Member** role.
+
+**Member commands:**
+`..help` **displays a list commands** that I can do.
+`..info` **shows my information** as a bot.
+`..add (a) (b)` **adds** two numbers.
+`..multiply (a) (b)` **multiplies** two numbers.
+`..divide (a) (b)` **divides** the first number by the second number.
+`..subtract (a) (b)` **subtracts** the first number by the second number.
+`..react (str/set) (message/set)` **calls my successive reaction algorithm.**
+`..rhelp` **helps you with** `..react`
+
+**Moderator commands:**
+`..verifyuser @mention` **sends a verification message** to the user given that they still do not carry a **Member** role.
+
+**Admin commands:**
+`..leave` **Shuts me down.**
+`..dmall "msg"` **Sends a Direct Message to everyone.** Message should be in quotes to work.
+`..consolidateroles` **Consolidates mod and admin roles** to the database just in case there was a change of roles.
+`..setvrfchannel` **Sets the current channel as a verification channel**, but there may only be ***one*** such channel.
+`..rmvrfchannel` **Unassigns the current channel as a verification channel.**
+`..verifyall` **Mass-verifies everyone in the server** who is not a **Member**
+
+Any suggestions for me is greatly appreciated at `#bot-suggestions` :D
