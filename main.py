@@ -41,7 +41,7 @@ botID = '442722388757446671'
 dt = DateSerializer()
 cmdNum = 0  # total number of commands in instance
 
-version = '1.0 stable release'
+version = '1.1 stable release'
 
 strikes = {'id': 0}
 userIDs = {'owner': '319285994253975553', 'self': '442722388757446671'}
@@ -111,13 +111,13 @@ async def on_ready():
     for svr in bot.servers:
         log.log("Initialzing " + svr.name + "...", dt.getComplete())
         global mbr_role  # declares 'default member role list'
-        role = get(svr.roles, name="Member")
+        role = get(svr.roles, name="Unverified")
         if role:
             mbr_role[svr.id] = role
-            log.log("Fetching member role from " + svr.name + "...",
+            log.log("Fetching unverified role from " + svr.name + "...",
                     dt.getComplete())
         else:
-            log.log("No member roles found for " + svr.name, dt.getComplete())
+            log.log("No unv roles found for " + svr.name, dt.getComplete())
         log.log(svr.name + " has been initialized.", dt.getComplete())
 
         # changes presence
@@ -287,11 +287,15 @@ async def verifyme(ctx):
     mbr = ctx.message.author
 
     if (svr.id, chn.id,) in dbh.fetchallVChannels():
-        if get(mbr.roles, name='Member'):
+        if get(mbr.roles, name='Unverified') is False:
             await bot.send_message(chn, "<@{}>, you're \
 already **verified**.".format(mbr.id))
         else:
-            await verify_response(mbr.id, ctx.message, type='manual')
+            try:
+                await verify_response(mbr.id, ctx.message, type='manual')
+            except TypeError:
+                await bot.send_message(chn, "<@{}>, you're \
+already **verified**.".format(mbr.id))
 
 
 # BEYOND THIS POINT:
@@ -314,7 +318,7 @@ async def verifyuser(ctx):
         if get(ctx.message.channel.server.members, id=userID):
             mbr = get(ctx.message.channel.server.members, id=userID)
             # checks if user is a member
-            if get(mbr.roles, name="Member"):
+            if get(mbr.roles, name="Unverified") is False:
                 await bot.send_message(ctx.message.channel,
                                        '<@{}> is already \
 **verified.**'.format(userID))
@@ -453,19 +457,17 @@ async def verifyall(ctx):
     cmdCount()
     if isAdmin(ctx):
         for mmbr in ctx.message.server.members:
-            if ctx.message.author.id == userIDs['self']:
+            if ctx.message.author.id == bot.user.id:
                 continue
 
             async def if_member_role(member_pending):
                 # this is to continue a nested for loop
                 for rle in member_pending.roles:
-                    if rle == get(ctx.message.server.roles, name="Member"):
-                        log.log('This is a member!', dt.getComplete())
-                        return
-                try:
-                    await verifyMember(member_pending)
-                except discord.errors.Forbidden:
-                    return  # this means the bot can't send the message.
+                    if rle == get(ctx.message.server.roles, name="Unverified"):
+                        try:
+                            await verifyMember(member_pending)
+                        except discord.errors.Forbidden:
+                            return  # this means the bot can't send the message
 
             await if_member_role(member_pending=mmbr)
 
@@ -519,7 +521,7 @@ async def verify_response(authorID, message, type='onMessage'):
     # bot responds to verification depending on verif type
     if type == 'onMessage':
         await bot.send_message(message.channel,
-                               vrf_response.format(role.name))
+                               vrf_response)
         log.log('User: ' + message.author.name + ' has been verified.',
                 dt.getComplete())
     elif type == 'manual':
@@ -533,7 +535,7 @@ async def verify_response(authorID, message, type='onMessage'):
         return
 
     # bot assigns member role
-    await bot.add_roles(mbr, role)
+    await bot.remove_roles(mbr, role)
     log.log(role.name + ' has been assigned to ' + message.author.name,
             dt.getComplete())
 
@@ -600,4 +602,4 @@ v_chan_set = fIO(txt_f['v_chan_success'])
 # initializes database upon start
 dbh.init()
 # change token to your bot's token.
-bot.run(input("Enter token : "))
+bot.run(input("Enter token:"))
