@@ -37,7 +37,7 @@ from emoji import EmojiHandler
 
 bot = commands.Bot(command_prefix='..')
 bot.remove_command('help')
-botID = '442722388757446671'
+botID = '444153336267145216'
 dt = DateSerializer()
 cmdNum = 0  # total number of commands in instance
 
@@ -535,9 +535,8 @@ async def verify_response(authorID, message, type='onMessage'):
         return
 
     # bot assigns member role
+    await asyncio.sleep(3)
     await bot.remove_roles(mbr, role)
-    log.log(role.name + ' has been assigned to ' + message.author.name,
-            dt.getComplete())
 
     # bot drops pending case
     log.log(message.author.name+"'s pending case has been dropped.",
